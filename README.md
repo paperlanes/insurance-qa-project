@@ -18,8 +18,8 @@ PostgreSQL · Python · Faker · FastAPI · Pytest · Power BI
 | Phase | Description | Status |
 |---|---|---|
 | 1 | Database design, synthetic data, SQL analysis & validation | ✅ Done |
-| 2 | FastAPI claims API with business rules | ⏳ In progress |
-| 3 | Pytest API tests + automated data validation | 🔜 Planned |
+| 2 | FastAPI claims API with business rules | ✅ Done |
+| 3 | Pytest API tests + automated data validation | ✅ Done |
 | 4 | Power BI dashboard | 🔜 Planned |
 
 ## Database Design
@@ -54,6 +54,27 @@ It also **deliberately seeds ~3% defective claims** to test the validation layer
 | Incident after policy end date | 18 |
 | Claimed amount exceeds sum assured | 5 |
 | Invalid claims approved or paid | 19 |
+
+## Claims API — `app/main.py`
+| Endpoint | Purpose |
+|---|---|
+| `POST /claims` | Submit a claim — two validation layers: Pydantic (format, 422) and business rules (400) |
+| `GET /claims/{claim_number}` | Look up one claim |
+| `GET /claims` | List claims with filters (status, policy type) |
+| `PATCH /claims/{claim_number}/status` | Status workflow as a state machine, with row locking (`FOR UPDATE`) |
+
+## Automated Testing — `tests/`
+**API tests** (`pytest`) — 13 tests covering valid submissions, every business rule
+(parametrized), error codes, and the full claim lifecycle. Test data is cleaned up
+after each run via fixtures.
+
+**Data quality checks** (`pytest -m data_quality`) — scan existing data for defects:
+| Check | Result |
+|---|---|
+| Incident after policy end | ❌ 18 defects found |
+| Claim exceeds sum assured | ❌ 5 defects found |
+| Invalid claims approved/paid | ❌ 19 defects found |
+| Approved ≤ claimed, settlement dates, rejection reasons | ✅ Pass |
 
 ## How to Run
 1. Create a PostgreSQL database `insurance_claims` and run `sql/schema.sql`
